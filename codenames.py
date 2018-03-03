@@ -139,7 +139,7 @@ while True:
 			simple_ranked_dict[candidate] = score
 
 
-		# combine and square the scores for our final ranking
+		# square and combine the scores for our final ranking
 		comb_rank = []
 		for cand in words:
 			comb_score = ranked_dict[cand]**2 + simple_ranked_dict[cand]**2
