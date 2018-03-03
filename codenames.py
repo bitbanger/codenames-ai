@@ -3,12 +3,17 @@ import math
 import urllib2
 import random
 import re
+import time
 from StringIO import StringIO
 from gensim.models import KeyedVectors
 
 stop_words = set(['a', 'an', 'the', '', 'of', 'on', 'or', 'for', 'is', 'no', 'and'])
 assoc_cache = dict()
 eng = set()
+
+seed = raw_input("Enter a seed: ")
+random.seed(seed)
+print ""
 
 # assoc fetches a bunch of associated words from ConceptNet
 def assoc(the_word):
@@ -34,9 +39,19 @@ def assoc(the_word):
 
 # print_board's functionality is undefined.
 def print_board(words):
-	for i in range(5):
-		for j in range(5):
-			print words[i*5+j],
+	col_width = [0]*5
+	for col in range(5):
+		max_length = 0
+		for row in range(5):
+			w = words[row*5+col]
+			if len(w) > max_length:
+				max_length = len(w)
+		col_width[col] = max_length
+
+	for row in range(5):
+		for col in range(5):
+			w = words[row*5+col]
+			print w + (' ' * (col_width[col]-len(w)+1)),
 		print ""
 	print ""
 
@@ -64,6 +79,9 @@ with open('game-words.txt', 'r') as f:
 		gwords.add(l.strip().lower())
 words = random.sample(gwords, 25)
 print "done"
+
+if seed == 'original':
+	words = 'trip vet robin wake space bug thief hospital stock shakespeare card gas fly bow bill mouse cloak figure soldier bar model snowman jam ham green'.split()
 
 
 
@@ -107,6 +125,10 @@ while True:
 		if num < 1 or num > 25:
 			print "please enter a number between 1 and 25 (inclusive)"
 
+
+		t1 = time.time()
+
+
 		# SCORE COMPONENT #1: word association
 		# loop over all pairs of associated words and accumulate semantic distances
 		# x4 weight to compensate for observed empirical maxima
@@ -142,7 +164,11 @@ while True:
 		for cand in words:
 			comb_score = ranked_dict[cand]**2 + simple_ranked_dict[cand]**2
 			comb_rank.append((cand, comb_score))
+
+
 		print ', '.join([x[0] for x in sorted(comb_rank, key = lambda x: x[1], reverse = True)][:num])
+		print '(guess took %.2f seconds)' % (time.time()-t1)
+		print ""
 
 	except KeyboardInterrupt:
 		quit()
