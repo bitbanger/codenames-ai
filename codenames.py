@@ -1,11 +1,18 @@
 import json
 import math
+import urllib
 import urllib2
 import random
 import re
+import subprocess
+import sys
 import time
 from StringIO import StringIO
 from gensim.models import KeyedVectors
+
+SAY_CMD = ""
+if len(sys.argv) > 1:
+	SAY_CMD = sys.argv[1]
 
 stop_words = set(['a', 'an', 'the', '', 'of', 'on', 'or', 'for', 'is', 'no', 'and'])
 assoc_cache = dict()
@@ -14,6 +21,10 @@ eng = set()
 seed = raw_input("Enter a seed: ")
 random.seed(seed)
 print ""
+
+# say says stuff
+def say(s):
+	subprocess.call("curl -s 'https://translate.google.com/translate_tts?ie=UTF-8&q=%s&tl=en&client=tw-ob' -H 'Referer: http://translate.google.com/' -H 'User-Agent: stagefright/1.2 (Linux;Android 5.0)' > google_tts.mp3 && %s google_tts.mp3" % (urllib.quote(s), SAY_CMD), shell = True)
 
 # assoc fetches a bunch of associated words from ConceptNet
 def assoc(the_word):
@@ -92,6 +103,10 @@ print "done"
 print ""
 
 
+say("Hi, I'm Tellie!")
+say("Let's play a game of Codenames!")
+
+
 
 print_board(words)
 
@@ -166,14 +181,25 @@ while True:
 			comb_rank.append((cand, comb_score))
 
 
-		print ', '.join([x[0] for x in sorted(comb_rank, key = lambda x: x[1], reverse = True)][:num])
-		print '(guess took %.2f seconds)' % (time.time()-t1)
-		print ""
+		if SAY_CMD != "":
+			print '(guess took %.2f seconds)' % (time.time()-t1)
+			guesses = sorted(comb_rank, key = lambda x: x[1], reverse = True)[:num]
+			for i in range(len(guesses)):
+				guess = guesses[i]
+				print guess[0]
+				say(guess[0])
+				if i < len(guesses)-1:
+					inp = raw_input()
+					if inp.lower() == "stop":
+						break
+		else:
+			print ', '.join([x[0] for x in sorted(comb_rank, key = lambda x: x[1], reverse = True)][:num])
+			print '(guess took %.2f seconds)' % (time.time()-t1)
+			print ""
 
 	except KeyboardInterrupt:
 		quit()
-	except e:
+	except:
 		print "something's wrong:"
-		print e
-		print ""
+		print sys.exc_info()[0]
 		continue
