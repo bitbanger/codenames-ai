@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 from StringIO import StringIO
 from gensim.models import KeyedVectors
 
@@ -24,7 +25,6 @@ pre_words = args.pre_words.strip().split()
 if len(pre_words) > 0 and len(pre_words) != 25:
 	print "please enter exactly 25 words for pre_words"
 	quit()
-
 
 stop_words = set(['a', 'an', 'the', '', 'of', 'on', 'or', 'for', 'is', 'no', 'and'])
 assoc_cache = dict()
@@ -93,17 +93,24 @@ model = KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', 
 print "done"
 
 
+def gen_board(sd):
+	if sd == 'original':
+		return 'trip vet robin wake space bug thief hospital stock shakespeare card gas fly bow bill mouse cloak figure soldier bar model snowman jam ham green'.split()
+
+	random.seed(sd)
+	return random.sample(gwords, 25)
+
+
 
 print "loading codenames words..."
 gwords = set()
 with open('game-words.txt', 'r') as f:
 	for l in f.readlines():
 		gwords.add(l.strip().lower())
-words = random.sample(gwords, 25)
-print "done"
 
-if seed == 'original':
-	words = 'trip vet robin wake space bug thief hospital stock shakespeare card gas fly bow bill mouse cloak figure soldier bar model snowman jam ham green'.split()
+words = gen_board(seed)
+
+print "done"
 
 if len(pre_words) == 25:
 	words = pre_words
@@ -117,6 +124,8 @@ print ""
 
 
 print_board(words)
+
+picked = set()
 
 while True:
 	try:
@@ -133,9 +142,19 @@ while True:
 			random.seed(splinp[1])
 			print "resetting with seed %s..." % splinp[1]
 			print ""
-			words = random.sample(gwords, 25)
+			words = gen_board(splinp[1])
 			print_board(words)
+			picked = set()
 			print ""
+			print ""
+			continue
+
+		if splinp[0] == "PICKED":
+			if len(splinp) == 1:
+				print "please enter the word that was picked"
+				print ""
+				continue
+			picked.add(splinp[1])
 			print ""
 			continue
 
@@ -149,6 +168,7 @@ while True:
 		linp = inp.strip().split()
 		if len(linp) != 2:
 			print "please enter a word and a number"
+			print ""
 			continue
 
 		word = linp[0]
@@ -162,6 +182,8 @@ while True:
 
 		if num < 1 or num > 25:
 			print "please enter a number between 1 and 25 (inclusive)"
+			print ""
+			continue
 
 
 		t1 = time.time()
@@ -174,6 +196,8 @@ while True:
 		ranked = []
 		ranked_dict = dict()
 		for candidate in words:
+			if candidate in picked:
+				continue
 			cand_assoc = assoc(candidate)
 			score = 0
 			count = 0
@@ -193,10 +217,14 @@ while True:
 		simple_ranked_dict = dict()
 		if word not in model.wv.vocab:
 			for cand in words:
+				if cand in picked:
+					continue
 				simple_ranked.append((cand, 0))
 				simple_ranked_dict[cand] = 0
 		else:
 			for candidate in words:
+				if candidate in picked:
+					continue
 				score = model.wv.similarity(candidate, word)
 				simple_ranked.append((candidate, score))
 				simple_ranked_dict[candidate] = score
@@ -205,14 +233,19 @@ while True:
 		# square and combine the scores for our final ranking
 		comb_rank = []
 		for cand in words:
+			if cand in picked:
+				continue
 			comb_score = ranked_dict[cand]**2 + simple_ranked_dict[cand]**2
 			comb_rank.append((cand, comb_score))
 
 
+
+		abs_guesses = sorted(comb_rank, key = lambda x: x[1], reverse = True)
+		unpicked_guesses = [g for g in abs_guesses if g not in picked]
+		guesses = unpicked_guesses[:min(len(unpicked_guesses), num)]
 		if SAY_CMD != "":
 			print '(guess took %.2f seconds)' % (time.time()-t1)
 			print ""
-			guesses = sorted(comb_rank, key = lambda x: x[1], reverse = True)[:num]
 			for i in range(len(guesses)):
 				guess = guesses[i]
 				print guess[0]
@@ -222,7 +255,7 @@ while True:
 					if inp.lower() == "stop":
 						break
 		else:
-			print ', '.join([x[0] for x in sorted(comb_rank, key = lambda x: x[1], reverse = True)][:num])
+			print ', '.join([x[0] for x in guesses])
 			print '(guess took %.2f seconds)' % (time.time()-t1)
 			print ""
 
@@ -231,4 +264,6 @@ while True:
 	except:
 		print "something's wrong:"
 		print sys.exc_info()[0]
+		print sys.exc_info()[1]
+		traceback.print_tb(sys.exc_info()[2])
 		continue
