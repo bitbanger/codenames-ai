@@ -1,3 +1,4 @@
+import argparse
 import json
 import math
 import urllib
@@ -10,17 +11,27 @@ import time
 from StringIO import StringIO
 from gensim.models import KeyedVectors
 
-SAY_CMD = ""
-if len(sys.argv) > 1:
-	SAY_CMD = ' '.join(sys.argv[1:])
+parser = argparse.ArgumentParser()
+parser.add_argument('--mp3_player', dest='mp3_player', type=str, default='', help='a command that will silently play an mp3 file on your system; this enables speech mode')
+parser.add_argument('--pre_words', dest='pre_words', type=str, default='', help='25 words to pre-load the board with, if desired')
+parser.add_argument('--seed', dest='seed', type=str, default='', help='a seed for the board randomizer')
+
+args = parser.parse_args(sys.argv[1:])
+seed = args.seed
+SAY_CMD = args.mp3_player
+pre_words = args.pre_words.strip().split()
+
+if len(pre_words) > 0 and len(pre_words) != 25:
+	print "please enter exactly 25 words for pre_words"
+	quit()
+
 
 stop_words = set(['a', 'an', 'the', '', 'of', 'on', 'or', 'for', 'is', 'no', 'and'])
 assoc_cache = dict()
 eng = set()
 
-seed = raw_input("Enter a seed: ")
-random.seed(seed)
-print ""
+if seed != '':
+	random.seed(seed)
 
 # say says stuff
 def say(s):
@@ -94,6 +105,8 @@ print "done"
 if seed == 'original':
 	words = 'trip vet robin wake space bug thief hospital stock shakespeare card gas fly bow bill mouse cloak figure soldier bar model snowman jam ham green'.split()
 
+if len(pre_words) == 25:
+	words = pre_words
 
 
 print "priming association cache..."
