@@ -12,7 +12,7 @@ from gensim.models import KeyedVectors
 
 SAY_CMD = ""
 if len(sys.argv) > 1:
-	SAY_CMD = sys.argv[1]
+	SAY_CMD = ' '.join(sys.argv[1:])
 
 stop_words = set(['a', 'an', 'the', '', 'of', 'on', 'or', 'for', 'is', 'no', 'and'])
 assoc_cache = dict()
@@ -103,21 +103,31 @@ print "done"
 print ""
 
 
-say("Hi, I'm Tellie!")
-say("Let's play a game of Codenames!")
-
-
-
 print_board(words)
 
 while True:
 	try:
 		inp = raw_input('> ')
+		if inp == "":
+			continue
 
-		if inp == "RESET":
-			print "resetting..."
+		splinp = inp.strip().split()
+		if splinp[0] == "RESET":
+			if len(splinp) == 1:
+				print "please enter a seed to reset to"
+				print ""
+				continue
+			random.seed(splinp[1])
+			print "resetting with seed %s..." % splinp[1]
 			print ""
 			words = random.sample(gwords, 25)
+			print_board(words)
+			print ""
+			print ""
+			continue
+
+		if inp == "BOARD":
+			print ""
 			print_board(words)
 			print ""
 			print ""
@@ -168,10 +178,15 @@ while True:
 		# just compare the semantic distances of candidate words to the input word
 		simple_ranked = []
 		simple_ranked_dict = dict()
-		for candidate in words:
-			score = model.wv.similarity(candidate, word)
-			simple_ranked.append((candidate, score))
-			simple_ranked_dict[candidate] = score
+		if word not in model.wv.vocab:
+			for cand in words:
+				simple_ranked.append((cand, 0))
+				simple_ranked_dict[cand] = 0
+		else:
+			for candidate in words:
+				score = model.wv.similarity(candidate, word)
+				simple_ranked.append((candidate, score))
+				simple_ranked_dict[candidate] = score
 
 
 		# square and combine the scores for our final ranking
@@ -183,6 +198,7 @@ while True:
 
 		if SAY_CMD != "":
 			print '(guess took %.2f seconds)' % (time.time()-t1)
+			print ""
 			guesses = sorted(comb_rank, key = lambda x: x[1], reverse = True)[:num]
 			for i in range(len(guesses)):
 				guess = guesses[i]
