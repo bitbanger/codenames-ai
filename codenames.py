@@ -6,6 +6,10 @@ import re
 from StringIO import StringIO
 from gensim.models import KeyedVectors
 
+stop_words = set(['a', 'an', 'the', '', 'of', 'on', 'or', 'for', 'is', 'no', 'and'])
+assoc_cache = dict()
+eng = set()
+
 # assoc fetches a bunch of associated words from ConceptNet
 def assoc(the_word):
 	if the_word in assoc_cache:
@@ -35,12 +39,6 @@ def print_board(words):
 			print words[i*5+j],
 		print ""
 	print ""
-
-
-
-stop_words = set(['a', 'an', 'the', '', 'of', 'on', 'or', 'for', 'is', 'no', 'and'])
-assoc_cache = dict()
-eng = set()
 
 
 
