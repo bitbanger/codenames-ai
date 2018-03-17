@@ -1,3 +1,7 @@
+# Compounds
+# Extra guesses
+# Probability of enemy words given their clues
+
 import argparse
 import json
 import math
@@ -35,6 +39,8 @@ if seed != '':
 
 # say says stuff
 def say(s):
+	if SAY_CMD == "":
+		return
 	subprocess.call("curl -s 'https://translate.google.com/translate_tts?ie=UTF-8&q=%s&tl=en&client=tw-ob' -H 'Referer: http://translate.google.com/' -H 'User-Agent: stagefright/1.2 (Linux;Android 5.0)' > google_tts.mp3 && %s google_tts.mp3" % (urllib.quote(s), SAY_CMD), shell = True)
 
 # assoc fetches a bunch of associated words from ConceptNet
@@ -80,17 +86,21 @@ def print_board(words):
 
 
 print "loading english dictionary..."
+say("loading english dictionary")
 with open('eng-words.txt', 'r') as f:
 	for line in f.readlines():
 		eng.add(line.strip().lower())
 print "done"
+say("done")
 
 
 
 
 print "loading semantic vector space..."
+say("loading semantic vector space. this one takes a while")
 model = KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True)
 print "done"
+say("done")
 
 
 def gen_board(sd):
@@ -102,6 +112,7 @@ def gen_board(sd):
 
 
 
+say("loading codenames words")
 print "loading codenames words..."
 gwords = set()
 with open('game-words.txt', 'r') as f:
@@ -111,16 +122,21 @@ with open('game-words.txt', 'r') as f:
 words = gen_board(seed)
 
 print "done"
+say("done")
 
 if len(pre_words) == 25:
 	words = pre_words
 
 
+say("priming association cache")
 print "priming association cache..."
 for w in words:
 	assoc(w)
 print "done"
+say("done")
 print ""
+
+say("Hi, I'm Tellie! Let's play a game of Codenames.")
 
 
 print_board(words)
@@ -156,6 +172,14 @@ while True:
 				continue
 			picked.add(splinp[1])
 			print ""
+			continue
+
+		if inp == "WIN":
+			say("Yay! We won!")
+			continue
+
+		if inp == "LOSE":
+			say("Boo! We lost!")
 			continue
 
 		if inp == "BOARD":
